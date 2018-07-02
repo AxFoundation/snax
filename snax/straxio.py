@@ -4,10 +4,11 @@ import tempfile
 import subprocess
 import os
 import stat
+from jobqueue import get_messages_from_queue
 import strax
 
 def download(dataset='170505_0309'):
-    temporary_directory = tempfile.TemporaryDirectory(delete=False)
+    temporary_directory = tempfile.TemporaryDirectory()
 
     script = f"""#!/bin/bash
 source /cvmfs/xenon.opensciencegrid.org/software/rucio-py26/setup_rucio_1_8_3.sh
@@ -43,17 +44,26 @@ rucio download x1t_SR001_{dataset}_tpc:raw
     return temporary_directory
 
 def convert(dataset):
-    temporary_directory = download(dataset)
+    #temporary_directory = download(dataset)
+    #name = temporary_directory.name
+    name = '/tmp'
 
     st = strax.Context('/project2/lgrandi/tunnell/strax',
-                       config={'pax_raw_dir' : temporary_directory.name + '/'})
+                       register_all=strax.xenon.plugins,
+                       config={'pax_raw_dir' : name + '/'})
 
     strax.xenon.pax_interface.RecordsFromPax.save_when = strax.SaveWhen.EXPLICIT
 
     st.register(strax.xenon.pax_interface.RecordsFromPax)
-    st.make(dataset, 'event_info')
+    st.make(dataset, 'event_info', max_workers=1)
 
-    temporary_directory.cleanup()
+    #temporary_directory.cleanup()
 
+def loop():
+    for message in get_messages_from_queue():
+        dataset = message['Body']
 
-convert('170505_0309')
+        print(f'Working on {dataset}')
+        convert(dataset)
+
+loop()

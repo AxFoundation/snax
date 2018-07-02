@@ -7,7 +7,7 @@ import pytest
 
 from click.testing import CliRunner
 
-from snax import snax
+from snax import straxio
 from snax import cli
 
 

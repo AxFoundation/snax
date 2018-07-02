@@ -2,69 +2,59 @@ import boto3
 
 QUEUE_URL = 'https://sqs.us-east-1.amazonaws.com/771312461418/snax'
 
-def send():
+def send(dataset='170505_0309'):
     # Create SQS client
-    sqs = boto3.client('sqs')
+    sqs = boto3.resource('sqs')
+
+    queue = sqs.get_queue_by_name(QueueName='snax')
 
     # Send message to SQS queue
-    response = sqs.send_message(
-        QueueUrl=QUEUE_URL,
-        DelaySeconds=10,
-        MessageAttributes={
-            'Title': {
-                'DataType': 'String',
-                'StringValue': 'The Whistler'
-            },
-            'Author': {
-                'DataType': 'String',
-                'StringValue': 'John Grisham'
-            },
-            'WeeksOn': {
-                'DataType': 'Number',
-                'StringValue': '6'
-            }
-        },
-        MessageBody=(
-            'Information about current NY Times fiction bestseller for '
-            'week of 12/11/2016.'
+    response = queue.send_message(MessageBody=dataset)
+    print(response)
+
+def get_messages_from_queue(queue_url=QUEUE_URL):
+    """Generates messages from an SQS queue.
+
+    Note: this continues to generate messages until the queue is empty.
+    Every message on the queue will be deleted.
+
+    :param queue_url: URL of the SQS queue to drain.
+
+    """
+    sqs_client = boto3.client('sqs')
+
+    while True:
+        resp = sqs_client.receive_message(
+            QueueUrl=queue_url,
+            AttributeNames=['All'],
+            MaxNumberOfMessages=1
         )
-    )
 
-    print(response['MessageId'])
+        try:
+            yield from resp['Messages']
+        except KeyError:
+            return
 
+        entries = [
+            {'Id': msg['MessageId'], 'ReceiptHandle': msg['ReceiptHandle']}
+            for msg in resp['Messages']
+        ]
 
-def receive():
-    import boto3
+        resp = sqs_client.delete_message_batch(
+            QueueUrl=queue_url, Entries=entries
+        )
 
-    # Create SQS client
-    sqs = boto3.client('sqs')
+        if len(resp['Successful']) != len(entries):
+            raise RuntimeError(
+                f"Failed to delete messages: entries={entries!r} resp={resp!r}"
+            )
 
-    # Receive message from SQS queue
-    response = sqs.receive_message(
-        QueueUrl=QUEUE_URL,
-        #AttributeNames=[
-        #    'SentTimestamp'
-        #],
-        #MaxNumberOfMessages=1,
-        #MessageAttributeNames=[
-        #    'All'
-        #],
-        #VisibilityTimeout=0,
-        #WaitTimeSeconds=0
-    )
-
-    message = response['Messages'][0]
-    receipt_handle = message['ReceiptHandle']
-
-    # Delete received message from queue
-    sqs.delete_message(
-        QueueUrl=QUEUE_URL,
-        ReceiptHandle=receipt_handle
-    )
-    print('Received and deleted message: %s' % message)
 
 def main():
-    #send()
-    receive()
+    send()
+    #for message in get_messages_from_queue(QUEUE_URL):
+    #    print('message', message['Body'])
+
+
 
 main()
