@@ -8,7 +8,7 @@ from jobqueue import get_messages_from_queue
 import strax
 
 def download(dataset='170505_0309'):
-    temporary_directory = tempfile.TemporaryDirectory()
+    temporary_directory = tempfile.TemporaryDirectory(suffix='/project2/lgrandi/tunnell/temp')
 
     script = f"""#!/bin/bash
 source /cvmfs/xenon.opensciencegrid.org/software/rucio-py26/setup_rucio_1_8_3.sh
@@ -59,7 +59,7 @@ def convert(dataset):
     strax.xenon.pax_interface.RecordsFromPax.save_when = strax.SaveWhen.EXPLICIT
 
     st.register(strax.xenon.pax_interface.RecordsFromPax)
-    st.make(dataset, 'event_info', max_workers=10)
+    st.make(dataset, 'event_info', max_workers=8)
 
     temporary_directory.cleanup()
 
