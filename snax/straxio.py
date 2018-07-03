@@ -11,7 +11,6 @@ def download(dataset='170505_0309'):
     temporary_directory = tempfile.TemporaryDirectory(suffix='/project2/lgrandi/tunnell/temp')
 
     script = f"""#!/bin/bash
-source /cvmfs/xenon.opensciencegrid.org/software/rucio-py26/setup_rucio_1_8_3.sh
 export RUCIO_ACCOUNT=xenon-analysis
 export X509_USER_PROXY=/project/lgrandi/xenon1t/grid_proxy/xenon_service_proxy
 source /cvmfs/xenon.opensciencegrid.org/software/rucio-py27/setup_rucio_1_8_3.sh
