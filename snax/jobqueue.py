@@ -1,4 +1,6 @@
 import boto3
+import pymongo
+import os
 
 QUEUE_URL = 'https://sqs.us-east-1.amazonaws.com/771312461418/snax'
 
@@ -51,10 +53,18 @@ def get_messages_from_queue(queue_url=QUEUE_URL):
 
 
 def main():
-    send()
+    c = pymongo.MongoClient('mongodb://pax:%s@copslx50.fysik.su.se:27017/run' % os.environ.get('MONGO_PASSWORD'))
+    collection = c['run']['runs_new']
+    for doc in collection.find({'tags.name' : '_sciencerun1', 'detector' : 'tpc',
+                                'number' : {'$gt' : 11997}},
+                               projection = {'name' : 1, 'number' : 1},
+                               limit = 20):
+        send(doc['name'])
+    #send()
     #for message in get_messages_from_queue(QUEUE_URL):
     #    print('message', message['Body'])
 
 
 
-main()
+if __name__ == "__main__":
+    main()

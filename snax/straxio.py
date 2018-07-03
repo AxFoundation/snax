@@ -36,6 +36,10 @@ rucio download x1t_SR001_{dataset}_tpc:raw
 
     print(temporary_directory.name)
 
+    if not os.path.isdir(os.path.join(temporary_directory.name,
+                        'raw')):
+        raise FileNotFoundError()
+
     os.rename(os.path.join(temporary_directory.name,
                            'raw'),
               os.path.join(temporary_directory.name,
@@ -44,9 +48,9 @@ rucio download x1t_SR001_{dataset}_tpc:raw
     return temporary_directory
 
 def convert(dataset):
-    #temporary_directory = download(dataset)
-    #name = temporary_directory.name
-    name = '/tmp'
+    temporary_directory = download(dataset)
+    name = temporary_directory.name
+    #name = 'tmp'
 
     st = strax.Context('/project2/lgrandi/tunnell/strax',
                        register_all=strax.xenon.plugins,
@@ -55,9 +59,9 @@ def convert(dataset):
     strax.xenon.pax_interface.RecordsFromPax.save_when = strax.SaveWhen.EXPLICIT
 
     st.register(strax.xenon.pax_interface.RecordsFromPax)
-    st.make(dataset, 'event_info', max_workers=1)
+    st.make(dataset, 'event_info', max_workers=10)
 
-    #temporary_directory.cleanup()
+    temporary_directory.cleanup()
 
 def loop():
     for message in get_messages_from_queue():
@@ -66,4 +70,5 @@ def loop():
         print(f'Working on {dataset}')
         convert(dataset)
 
-loop()
+if __name__ == "__main__":
+    loop()
