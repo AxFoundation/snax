@@ -8,7 +8,7 @@ from jobqueue import get_messages_from_queue
 import strax
 
 def download(dataset='170505_0309'):
-    temporary_directory = tempfile.TemporaryDirectory(suffix='/project2/lgrandi/tunnell/temp')
+    temporary_directory = tempfile.TemporaryDirectory(prefix='/project2/lgrandi/tunnell/temp')
 
     script = f"""#!/bin/bash
 export RUCIO_ACCOUNT=xenon-analysis
@@ -17,11 +17,7 @@ source /cvmfs/xenon.opensciencegrid.org/software/rucio-py27/setup_rucio_1_8_3.sh
 source /cvmfs/oasis.opensciencegrid.org/osg-software/osg-wn-client/3.4/current/el7-x86_64/setup.sh
 cd {temporary_directory.name}
 rucio download x1t_SR001_{dataset}_tpc:raw
-    """
-
-#    script = f"""#!/bin/bash
-#echo {dataset}
-#             """
+"""
 
     file = tempfile.NamedTemporaryFile(suffix='.sh', delete=False)
     name = file.name
@@ -35,9 +31,13 @@ rucio download x1t_SR001_{dataset}_tpc:raw
 
     print(temporary_directory.name)
 
-    if not os.path.isdir(os.path.join(temporary_directory.name,
-                        'raw')):
-        raise FileNotFoundError()
+    raw_dir = os.path.join(temporary_directory.name,
+                                         'raw')
+                            
+    if not os.path.isdir(raw_dir):
+        raise FileNotFoundError('Downloaded data, but could not find')
+
+    os.unlink(os.path.join(raw_dir, 'trigger_monitor_data.zip'))
 
     os.rename(os.path.join(temporary_directory.name,
                            'raw'),
@@ -70,4 +70,4 @@ def loop():
         convert(dataset)
 
 if __name__ == "__main__":
-    loop()
+    loop() #convert("170428_0804") # #loop()
