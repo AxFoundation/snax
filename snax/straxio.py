@@ -8,7 +8,7 @@ from jobqueue import get_messages_from_queue
 import strax
 
 def download(dataset='170505_0309'):
-    temporary_directory = tempfile.TemporaryDirectory(prefix='/project2/lgrandi/tunnell/temp')
+    temporary_directory = tempfile.TemporaryDirectory(prefix='/dali/lgrandi/tunnell/temp/')
 
     script = f"""#!/bin/bash
 export RUCIO_ACCOUNT=xenon-analysis
@@ -16,7 +16,7 @@ export X509_USER_PROXY=/project/lgrandi/xenon1t/grid_proxy/xenon_service_proxy
 source /cvmfs/xenon.opensciencegrid.org/software/rucio-py27/setup_rucio_1_8_3.sh
 source /cvmfs/oasis.opensciencegrid.org/osg-software/osg-wn-client/3.4/current/el7-x86_64/setup.sh
 cd {temporary_directory.name}
-rucio download x1t_SR001_{dataset}_tpc:raw
+rucio download --rse UC_OSG_USERDISK x1t_SR001_{dataset}_tpc:raw
 """
 
     file = tempfile.NamedTemporaryFile(suffix='.sh', delete=False)
@@ -51,14 +51,14 @@ def convert(dataset):
     name = temporary_directory.name
     #name = 'tmp'
 
-    st = strax.Context('/project2/lgrandi/tunnell/strax',
+    st = strax.Context('/dali/lgrandi/tunnell/strax',
                        register_all=strax.xenon.plugins,
                        config={'pax_raw_dir' : name + '/'})
 
     strax.xenon.pax_interface.RecordsFromPax.save_when = strax.SaveWhen.EXPLICIT
 
     st.register(strax.xenon.pax_interface.RecordsFromPax)
-    st.make(dataset, 'event_info', max_workers=8)
+    st.make(dataset, 'event_info', max_workers=2)
 
     temporary_directory.cleanup()
 
