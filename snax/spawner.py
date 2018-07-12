@@ -35,7 +35,7 @@ def main(spawn_threshold=10):
         n = queue.attributes.get('ApproximateNumberOfMessages')
         print('num', n)
 
-        ids = subprocess.getoutput(f'squeue --user {username} --state pending --format %A')
+        ids = subprocess.getoutput(f'squeue --user {username} --state pending --format %%A')
         ids = ids.split()[1:] # 0 is header
 
         if n > spawn_threshold and len(ids) < 2:
