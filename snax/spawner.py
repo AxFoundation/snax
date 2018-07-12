@@ -31,15 +31,24 @@ def main(spawn_threshold=10):
     print('num', queue.attributes.get('ApproximateNumberOfMessages'))
 
     while 1:
-        time.sleep(60)
-        n = queue.attributes.get('ApproximateNumberOfMessages')
-        print('num', n)
+
+        n = int(queue.attributes.get('ApproximateNumberOfMessages'))
 
         ids = subprocess.getoutput(f'squeue --user {username} --state pending --format %%A')
         ids = ids.split()[1:] # 0 is header
+        n_ids = len(ids)
 
-        if n > spawn_threshold and len(ids) < 2:
+        print('Running')
+        print('\tSQS Queue Size {n}')
+        print('\tPending batch queue {n_ids}')
+
+        if n > spawn_threshold and n_ids < 2:
+            print('\tSpawn')
             spawn()
+        else:
+            print('\tWait')
+        print('\tSleeping')
+        time.sleep(60)
 
 if __name__ == "__main__":
     main()
