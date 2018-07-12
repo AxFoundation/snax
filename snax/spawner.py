@@ -15,14 +15,16 @@ def send(dataset='170505_0309'):
 
     print(len(queue))
 
-def dali():
+
+def queue_dali():
     subprocess.getoutput('sbatch ~/blah.sh')
 
-def dali():
+
+def queue_xenon1t():
     subprocess.getoutput('sbatch ~/blah_xenon1t.sh')
 
 def spawn():
-    dali()
+    queue_dali()
 
 def main(spawn_threshold=10):
     username = getpass.getuser()
