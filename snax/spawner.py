@@ -1,7 +1,9 @@
-import boto3
-import time
-import subprocess
 import getpass
+import subprocess
+import time
+from datetime import datetime
+
+import boto3
 
 QUEUE_URL = 'https://sqs.us-east-1.amazonaws.com/771312461418/snax'
 
@@ -38,9 +40,9 @@ def main(spawn_threshold=10):
         ids = ids.split()[1:] # 0 is header
         n_ids = len(ids)
 
-        print('Running')
-        print('\tSQS Queue Size {n}')
-        print('\tPending batch queue {n_ids}')
+        print('Running ', str(datetime.utcnow()))
+        print(f'\tSQS Queue Size {n}')
+        print(f'\tPending batch queue {n_ids}')
 
         if n > spawn_threshold and n_ids < 2:
             print('\tSpawn')
