@@ -1,5 +1,7 @@
 import boto3
 import time
+import subprocess
+import getpass
 
 QUEUE_URL = 'https://sqs.us-east-1.amazonaws.com/771312461418/snax'
 
@@ -11,13 +13,18 @@ def send(dataset='170505_0309'):
 
     print(len(queue))
 
-def midway():
-    pass#processing_script
+def dali():
+    subprocess.getoutput('sbatch ~/blah.sh')
+
+def dali():
+    subprocess.getoutput('sbatch ~/blah_xenon1t.sh')
 
 def spawn():
-    midway()
+    dali()
 
 def main(spawn_threshold=10):
+    username = getpass.getuser()
+
     sqs = boto3.resource('sqs')
 
     queue = sqs.get_queue_by_name(QueueName='snax')
@@ -27,13 +34,12 @@ def main(spawn_threshold=10):
         time.sleep(60)
         n = queue.attributes.get('ApproximateNumberOfMessages')
         print('num', n)
-        if n > 10:
+
+        ids = subprocess.getoutput(f'squeue --user {username} --state pending --format %A')
+        ids = ids.split()[1:] # 0 is header
+
+        if n > spawn_threshold and len(ids) < 2:
             spawn()
-
-
-
-    #for message in get_messages_from_queue(QUEUE_URL):
-    #    print('message', message['Body'])
 
 if __name__ == "__main__":
     main()

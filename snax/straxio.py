@@ -33,7 +33,7 @@ rucio download x1t_SR001_{dataset}_tpc:raw
 
     raw_dir = os.path.join(temporary_directory.name,
                                          'raw')
-                            
+
     if not os.path.isdir(raw_dir):
         raise FileNotFoundError('Downloaded data, but could not find')
 
@@ -63,11 +63,15 @@ def convert(dataset):
     temporary_directory.cleanup()
 
 def loop():
-    for message in get_messages_from_queue():
+    for i, message in enumerate(get_messages_from_queue()):
+        if i > 2:
+            break
         dataset = message['Body']
 
         print(f'Working on {dataset}')
         convert(dataset)
+
+
 
 if __name__ == "__main__":
     loop() #convert("170428_0804") # #loop()
