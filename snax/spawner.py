@@ -23,36 +23,46 @@ def queue_dali():
 def queue_xenon1t():
     subprocess.getoutput('sbatch ~/blah_xenon1t.sh')
 
-def spawn():
-    queue_dali()
+def spawn(partition):
+    if partition == 'xenon1t':
+        queue_xenon1t()
+    else:
+        queue_dali()
 
-def main(spawn_threshold=10):
+def queue_state(partition, state='pending'):
     username = getpass.getuser()
+    ids = subprocess.getoutput(f'squeue --user {username} --state {state} --partition {partition} --format %%A')
+    ids = ids.split()[1:] # 0 is header                                                                                                                    
+    return len(ids)
 
+
+def main(spawn_threshold=10, sleep=5, partition='dali'):
     sqs = boto3.resource('sqs')
 
     queue = sqs.get_queue_by_name(QueueName='snax')
-    print('num', queue.attributes.get('ApproximateNumberOfMessages'))
 
     while 1:
 
         n = int(queue.attributes.get('ApproximateNumberOfMessages'))
 
-        ids = subprocess.getoutput(f'squeue --user {username} --state pending --format %%A')
-        ids = ids.split()[1:] # 0 is header
-        n_ids = len(ids)
+        n_pending = queue_state(partition=partition)
+        n_running = queue_state(partition=partition, state='running')
 
         print('Running ', str(datetime.utcnow()))
         print(f'\tSQS Queue Size {n}')
-        print(f'\tPending batch queue {n_ids}')
+        print(f'\tRunning batch queue {n_running}')
+        print(f'\tPending batch queue {n_pending}')
 
-        if n > spawn_threshold and n_ids < 2:
+        if n > spawn_threshold and n_pending < 2 and n_running < 50:
             print('\tSpawn')
-            spawn()
+            spawn(partition)
         else:
             print('\tWait')
         print('\tSleeping')
-        time.sleep(60)
+        time.sleep(sleep)
 
 if __name__ == "__main__":
-    main()
+    import sys
+    partition = sys.argv[1]
+    main(partition=partition)
+

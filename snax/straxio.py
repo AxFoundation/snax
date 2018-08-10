@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+B1;95;0c# -*- coding: utf-8 -*-
 
 import tempfile
 import subprocess
@@ -16,8 +16,8 @@ export X509_USER_PROXY=/project/lgrandi/xenon1t/grid_proxy/xenon_service_proxy
 source /cvmfs/xenon.opensciencegrid.org/software/rucio-py27/setup_rucio_1_8_3.sh
 source /cvmfs/oasis.opensciencegrid.org/osg-software/osg-wn-client/3.4/current/el7-x86_64/setup.sh
 cd {temporary_directory.name}
-rucio download --rse UC_OSG_USERDISK x1t_SR001_{dataset}_tpc:raw
-"""
+rucio download x1t_SR001_{dataset}_tpc:raw --rse UC_OSG_USERDISK 
+""" # --rse UC_OSG_USERDISK
 
     file = tempfile.NamedTemporaryFile(suffix='.sh', delete=False)
     name = file.name
@@ -55,7 +55,7 @@ def convert(dataset):
                        register_all=strax.xenon.plugins,
                        config={'pax_raw_dir' : name + '/'})
 
-    strax.xenon.pax_interface.RecordsFromPax.save_when = strax.SaveWhen.EXPLICIT
+    #strax.xenon.pax_interface.RecordsFromPax.save_when = strax.SaveWhen.EXPLICIT
 
     st.register(strax.xenon.pax_interface.RecordsFromPax)
     st.make(dataset, 'event_info', max_workers=2)
