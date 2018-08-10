@@ -1,4 +1,4 @@
-B1;95;0c# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 
 import tempfile
 import subprocess
