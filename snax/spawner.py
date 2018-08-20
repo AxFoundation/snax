@@ -1,7 +1,7 @@
 import getpass
 import subprocess
 import time
-from datetime import datetime
+import datetime
 
 import boto3
 
@@ -36,7 +36,7 @@ def queue_state(partition, state='pending'):
     return len(ids)
 
 
-def main(spawn_threshold=10, sleep=5, partition='dali'):
+def main(spawn_threshold=10, sleep=60, partition='dali', n_running_max = 25):
     sqs = boto3.resource('sqs')
 
     queue = sqs.get_queue_by_name(QueueName='snax')
@@ -48,21 +48,23 @@ def main(spawn_threshold=10, sleep=5, partition='dali'):
         n_pending = queue_state(partition=partition)
         n_running = queue_state(partition=partition, state='running')
 
-        print('Running ', str(datetime.utcnow()))
+        print('Running ', str(datetime.datetime.utcnow()))
         print(f'\tSQS Queue Size {n}')
         print(f'\tRunning batch queue {n_running}')
         print(f'\tPending batch queue {n_pending}')
 
-        if n > spawn_threshold and n_pending < 2 and n_running < 50:
+        if n > spawn_threshold and n_pending < 2:# and n_running < n_running_max:
             print('\tSpawn')
             spawn(partition)
         else:
             print('\tWait')
+
         print('\tSleeping')
         time.sleep(sleep)
 
 if __name__ == "__main__":
     import sys
     partition = sys.argv[1]
-    main(partition=partition)
+    main(partition=partition,
+         n_running_max=30 if partition == 'dali' else 12)
 

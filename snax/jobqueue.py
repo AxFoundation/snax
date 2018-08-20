@@ -29,7 +29,8 @@ def get_messages_from_queue(queue_url=QUEUE_URL):
         resp = sqs_client.receive_message(
             QueueUrl=queue_url,
             AttributeNames=['All'],
-            MaxNumberOfMessages=1
+            MaxNumberOfMessages=1,
+            
         )
 
         try:
@@ -47,15 +48,16 @@ def get_messages_from_queue(queue_url=QUEUE_URL):
         )
 
         if len(resp['Successful']) != len(entries):
-            raise RuntimeError(
-                f"Failed to delete messages: entries={entries!r} resp={resp!r}"
-            )
+            raise RuntimeError(f'Failed to delete messages: entries={entries} resp={resp}')
+            
 
 
 def main():
     c = pymongo.MongoClient('mongodb://pax:%s@copslx50.fysik.su.se:27017/run' % os.environ.get('MONGO_PASSWORD'))
     collection = c['run']['runs_new']
     for doc in collection.find({'tags.name' : '_sciencerun1', 'detector' : 'tpc',
+                                'data.location' : {'$regex' : 'x1t_SR001_.*'},
+                                'data.rse' : {'$elemMatch' : {'$eq' : 'UC_OSG_USERDISK'}},
                                 #'number' : {'$gt' : 11997}
                                 },
                                projection = {'name' : 1, 'number' : 1},
