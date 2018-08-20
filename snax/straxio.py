@@ -52,6 +52,9 @@ def convert(dataset):
     name = temporary_directory.name
     #name = 'tmp'
 
+    strax.mailbox.MAILBOX_TIMEOUT = 60 * 60
+    strax.mailbox.MAILBOX_MAX_MESSAGES = 3
+    
     st = strax.Context('/dali/lgrandi/tunnell/strax',
                        register_all=strax.xenon.plugins,
                        config={'pax_raw_dir' : name + '/'})
