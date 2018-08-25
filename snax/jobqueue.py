@@ -53,7 +53,7 @@ def get_messages_from_queue(queue_url=QUEUE_URL):
 
 
 def main():
-    c = pymongo.MongoClient('mongodb://pax:%s@copslx50.fysik.su.se:27017/run' % os.environ.get('MONGO_PASSWORD'))
+    c = pymongo.MongoClient('mongodb://pax:%s@zenigata.uchicago.edu:27017/run' % os.environ.get('MONGO_PASSWORD'))
     collection = c['run']['runs_new']
     for doc in collection.find({'tags.name' : '_sciencerun1', 'detector' : 'tpc',
                                 'data.location' : {'$regex' : 'x1t_SR001_.*'},

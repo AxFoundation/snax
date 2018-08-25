@@ -7,9 +7,11 @@ import stat
 from jobqueue import get_messages_from_queue
 import strax
 
-def download(dataset='170505_0309'):
-    temporary_directory = tempfile.TemporaryDirectory(prefix='/dali/lgrandi/tunnell/temp/')
+import strax
+strax.mailbox.MAILBOX_TIMEOUT = 60*10
+strax.mailbox.MAILBOX_MAX_MESSAGES = 3
 
+def download(dataset, temporary_directory):
     script = f"""#!/bin/bash
 export RUCIO_ACCOUNT=xenon-analysis
 export X509_USER_PROXY=/project/lgrandi/xenon1t/grid_proxy/xenon_service_proxy
@@ -48,21 +50,27 @@ rucio download x1t_SR001_{dataset}_tpc:raw --rse UC_OSG_USERDISK
     return temporary_directory
 
 def convert(dataset):
-    temporary_directory = download(dataset)
+    temporary_directory = tempfile.TemporaryDirectory(prefix='/dali/lgrandi/tunnell/temp/') 
     name = temporary_directory.name
-    #name = 'tmp'
 
     strax.mailbox.MAILBOX_TIMEOUT = 60 * 60
     strax.mailbox.MAILBOX_MAX_MESSAGES = 3
     
-    st = strax.Context('/dali/lgrandi/tunnell/strax',
+    st = strax.Context(storage=[ strax.SimpleS3Store(),
+                                 #strax.DataDirectory('/dali/lgrandi/tunnell/strax', readonly=True)
+                             ],
                        register_all=strax.xenon.plugins,
                        config={'pax_raw_dir' : name + '/'})
 
     #strax.xenon.pax_interface.RecordsFromPax.save_when = strax.SaveWhen.EXPLICIT
 
     st.register(strax.xenon.pax_interface.RecordsFromPax)
-    st.make(dataset, 'event_info')#, max_workers=2)
+
+    try:
+        st.make(dataset, 'event_info')#, max_workers=2)
+    except:
+        temporary_directory = download(dataset, temporary_directory)
+        st.make(dataset, 'event_info')
 
     temporary_directory.cleanup()
 
