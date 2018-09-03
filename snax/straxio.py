@@ -7,9 +7,6 @@ import stat
 from jobqueue import get_messages_from_queue
 import strax
 
-strax.mailbox.MAILBOX_TIMEOUT = 60*60
-strax.mailbox.MAILBOX_MAX_MESSAGES = 10
-
 def download(dataset, temporary_directory):
     script = f"""#!/bin/bash
 export RUCIO_ACCOUNT=xenon-analysis
@@ -66,9 +63,6 @@ def remove(s3, dataset):
 def convert(dataset):
     temporary_directory = tempfile.TemporaryDirectory(prefix='/dali/lgrandi/tunnell/temp/')
     name = temporary_directory.name
-
-    strax.mailbox.MAILBOX_TIMEOUT = 60 * 60
-    strax.mailbox.MAILBOX_MAX_MESSAGES = 3
 
     st = strax.Context(storage=[ strax.SimpleS3Store(),
                              ],
