@@ -64,6 +64,9 @@ def convert(dataset):
     temporary_directory = tempfile.TemporaryDirectory(prefix='/dali/lgrandi/tunnell/temp/')
     name = temporary_directory.name
 
+    strax.Mailbox.DEFAULT_TIMEOUT = 600
+    
+
     st = strax.Context(storage=[ strax.SimpleS3Store(),
                              ],
                        register_all=strax.xenon.plugins,
