@@ -23,7 +23,9 @@ def get_messages_from_queue(queue_url=QUEUE_URL):
     :param queue_url: URL of the SQS queue to drain.
 
     """
-    sqs_client = boto3.client('sqs')
+    sqs_client = boto3.client(aws_access_key_id=os.environ.get('AWS_ACCESS_KEY_ID'),
+                               aws_secret_access_key=os.environ.get('AWS_SECRET_ACCESS_KEY'),
+                               service_name='sqs')
 
     while True:
         resp = sqs_client.receive_message(

@@ -17,6 +17,7 @@ def send(dataset='170505_0309'):
 
 
 def queue_dali():
+    # TODO: write tempfile then submit
     subprocess.getoutput('sbatch ~/blah.sh')
 
 
@@ -36,7 +37,7 @@ def queue_state(partition, state='pending'):
     return len(ids)
 
 
-def main(spawn_threshold=10, sleep=60, partition='dali', n_running_max = 25):
+def main(spawn_threshold=10, sleep=30, partition='dali', n_running_max = 25):
     sqs = boto3.resource('sqs')
 
     queue = sqs.get_queue_by_name(QueueName='snax')

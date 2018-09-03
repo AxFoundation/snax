@@ -7,9 +7,8 @@ import stat
 from jobqueue import get_messages_from_queue
 import strax
 
-import strax
-strax.mailbox.MAILBOX_TIMEOUT = 60*10
-strax.mailbox.MAILBOX_MAX_MESSAGES = 3
+strax.mailbox.MAILBOX_TIMEOUT = 60*60
+strax.mailbox.MAILBOX_MAX_MESSAGES = 10
 
 def download(dataset, temporary_directory):
     script = f"""#!/bin/bash
@@ -36,7 +35,7 @@ rucio download x1t_SR001_{dataset}_tpc:raw --rse UC_OSG_USERDISK
     raw_dir = os.path.join(temporary_directory.name,
                            'raw')
 
-    
+
     if not os.path.isdir(raw_dir):
         raise FileNotFoundError(f'Downloaded data, but could not find {raw_dir}')
 
@@ -49,44 +48,63 @@ rucio download x1t_SR001_{dataset}_tpc:raw --rse UC_OSG_USERDISK
 
     return temporary_directory
 
+def remove(s3, dataset):
+    bucket_name = 'snax_s3_v2'
+    objects = s3.list_objects(Bucket=bucket_name,
+                              Prefix=dataset)
+    if 'Contents' not in objects:
+        return
+    
+    print('Purge', dataset)
+      
+    objects2 = [{'Key' : obj['Key']} for obj in objects['Contents']]
+            
+    print('deleting %d objects' % len(objects['Contents']))
+    s3c.delete_objects(Bucket=bucket_name,
+                       Delete={'Objects' : objects2})
+
 def convert(dataset):
-    temporary_directory = tempfile.TemporaryDirectory(prefix='/dali/lgrandi/tunnell/temp/') 
+    temporary_directory = tempfile.TemporaryDirectory(prefix='/dali/lgrandi/tunnell/temp/')
     name = temporary_directory.name
 
     strax.mailbox.MAILBOX_TIMEOUT = 60 * 60
     strax.mailbox.MAILBOX_MAX_MESSAGES = 3
-    
+
     st = strax.Context(storage=[ strax.SimpleS3Store(),
-                                 #strax.DataDirectory('/dali/lgrandi/tunnell/strax', readonly=True)
                              ],
                        register_all=strax.xenon.plugins,
                        config={'pax_raw_dir' : name + '/'})
-
-    #strax.xenon.pax_interface.RecordsFromPax.save_when = strax.SaveWhen.EXPLICIT
-
     st.register(strax.xenon.pax_interface.RecordsFromPax)
 
+    client = st.storage[0].s3
+
+    meta = {}
     try:
-        st.make(dataset, 'event_info')#, max_workers=2)
-    except:
+        meta = st.get_meta(dataset, 'raw_records')
+    except strax.DataNotAvailable:
         temporary_directory = download(dataset, temporary_directory)
-        st.make(dataset, 'event_info')
+        st.make(dataset, 'raw_records', max_workers=2)
+    except Exception as e:
+        print('STRAXFAIL EXCEPTION', str(e))
+        remove(client, dataset)
+        temporary_directory = download(dataset, temporary_directory)
+        st.make(dataset, 'raw_records', max_workers=2)
 
     temporary_directory.cleanup()
 
 def loop():
     for i, message in enumerate(get_messages_from_queue()):
-        if i == 1:
-            break
         dataset = message['Body']
 
         print(f'Working on {dataset}')
         try:
             convert(dataset)
         except FileNotFoundError as ex:
-            print(f'Fail {dataset} {ex}')
+            print(f'SNAXFAIL {dataset} {ex}')
+        except Exception as ex:
+            print(f'NEWSNAXFAIL {dataset} {ex}')
+            raise
 
-        
 
 
 
