@@ -83,12 +83,12 @@ def convert(dataset):
         meta = st.get_meta(dataset, 'raw_records')
     except strax.DataNotAvailable:
         temporary_directory = download(dataset, temporary_directory)
-        st.make(dataset, 'raw_records', max_workers=2)
+        st.make(dataset, 'raw_records')
     except Exception as e:
         print('STRAXFAIL EXCEPTION', str(e))
         remove(client, dataset)
         temporary_directory = download(dataset, temporary_directory)
-        st.make(dataset, 'raw_records', max_workers=2)
+        st.make(dataset, 'raw_records')
 
     temporary_directory.cleanup()
 
