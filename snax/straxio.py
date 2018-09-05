@@ -45,9 +45,10 @@ rucio download x1t_SR001_{dataset}_tpc:raw --rse UC_OSG_USERDISK
 
     return temporary_directory
 
+BUCKET_NAME = 'snax_s3_v2'
+
 def remove(s3, dataset):
-    bucket_name = 'snax_s3_v2'
-    objects = s3.list_objects(Bucket=bucket_name,
+    objects = s3.list_objects(Bucket=BUCKET_NAME,
                               Prefix=dataset)
     if 'Contents' not in objects:
         return
@@ -57,7 +58,7 @@ def remove(s3, dataset):
     objects2 = [{'Key' : obj['Key']} for obj in objects['Contents']]
             
     print('deleting %d objects' % len(objects['Contents']))
-    s3c.delete_objects(Bucket=bucket_name,
+    s3c.delete_objects(Bucket=BUCKET_NAME,
                        Delete={'Objects' : objects2})
 
 def convert(dataset):
@@ -74,6 +75,7 @@ def convert(dataset):
     st.register(strax.xenon.pax_interface.RecordsFromPax)
 
     client = st.storage[0].s3
+    client.create_bucket(Bucket=BUCKET_NAME)
 
     meta = {}
     try:
