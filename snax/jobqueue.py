@@ -1,20 +1,34 @@
-import boto3
-import pymongo
+import datetime
 import os
 
-QUEUE_URL = 'https://sqs.us-east-1.amazonaws.com/771312461418/snax'
+import pymongo
 
-def send(dataset='170505_0309'):
-    # Create SQS client
-    sqs = boto3.resource('sqs')
+CONNECTION = pymongo.MongoClient(
+    f'mongodb://queue_inserter:{os.environ.get("MONGO_QUEUE_PASSWORD")}@rundbcluster-shard-00-00-cfaei.gcp.mongodb.net:27017,rundbcluster-shard-00-01-cfaei.gcp.mongodb.net:27017,rundbcluster-shard-00-02-cfaei.gcp.mongodb.net:27017/xenon1t?ssl=true&replicaSet=RunDBCluster-shard-0&authSource=admin&retryWrites=true')
+COLLECTION = CONNECTION['xenon1t']['processing_queue']
 
-    queue = sqs.get_queue_by_name(QueueName='snax')
 
-    # Send message to SQS queue
-    response = queue.send_message(MessageBody=dataset)
-    print(response)
+def send(payload):
+    doc = {
+        'startTime': None,
+        'endTime': None,
+        'createdOn': datetime.datetime.utcnow(),
+        'priority': 1,
+        'error': False,
+        'payload': payload
+    }
 
-def get_messages_from_queue(queue_url=QUEUE_URL):
+    COLLECTION.insert_one(doc)
+
+
+def error(doc, msg=""):
+    COLLECTION.find_one_and_update(filter={'_id': doc['_id']},
+                                   update={'$set': {'error': True,
+                                                    'error_msg': msg}},
+                                   )
+
+
+def get_messages_from_queue():
     """Generates messages from an SQS queue.
 
     Note: this continues to generate messages until the queue is empty.
@@ -23,54 +37,56 @@ def get_messages_from_queue(queue_url=QUEUE_URL):
     :param queue_url: URL of the SQS queue to drain.
 
     """
-    sqs_client = boto3.client(aws_access_key_id=os.environ.get('AWS_ACCESS_KEY_ID'),
-                               aws_secret_access_key=os.environ.get('AWS_SECRET_ACCESS_KEY'),
-                               service_name='sqs')
 
     while True:
-        resp = sqs_client.receive_message(
-            QueueUrl=queue_url,
-            AttributeNames=['All'],
-            MaxNumberOfMessages=1,
-            
-        )
+        doc = COLLECTION.find_one_and_update(filter={'startTime': None},
+                                             update={'$set': {'startTime': datetime.datetime.utcnow()}},
+                                             sort=[('priority', -1),
+                                                   ('createdOn', 1)],
+                                             return_document=pymongo.collection.ReturnDocument.AFTER,
+                                             )
 
-        try:
-            yield from resp['Messages']
-        except KeyError:
-            return
+        if doc is None:
+            break
+        else:
+            yield doc
 
-        entries = [
-            {'Id': msg['MessageId'], 'ReceiptHandle': msg['ReceiptHandle']}
-            for msg in resp['Messages']
-        ]
-
-        resp = sqs_client.delete_message_batch(
-            QueueUrl=queue_url, Entries=entries
-        )
-
-        if len(resp['Successful']) != len(entries):
-            raise RuntimeError(f'Failed to delete messages: entries={entries} resp={resp}')
-            
+        doc = COLLECTION.find_one_and_update(filter={'_id': doc['_id']},
+                                             update={'$set': {'endTime': datetime.datetime.utcnow()}},
+                                             )
+        if doc is None:
+            raise RuntimeError("Could not find job in queue", doc)
 
 
 def main():
+    index = [('startTime', 1), ('priority', -1), ('createdOn', 1)]
+
+    for index2 in COLLECTION.list_indexes():
+        if index2['key'].items() == index:
+            break
+    else:
+        print('create')
+        COLLECTION.create_index(index)
+
+
     c = pymongo.MongoClient('mongodb://pax:%s@zenigata.uchicago.edu:27017/run' % os.environ.get('MONGO_PASSWORD'))
     collection = c['run']['runs_new']
-    for doc in collection.find({'tags.name' : '_sciencerun1', 'detector' : 'tpc',
-                                'data.location' : {'$regex' : 'x1t_SR001_.*'},
-                                'data.rse' : {'$elemMatch' : {'$eq' : 'UC_OSG_USERDISK'}},
-                                #'number' : {'$gt' : 11997}
+    for doc in collection.find({'tags.name': '_sciencerun1', 'detector': 'tpc',
+                                'data.location': {'$regex': 'x1t_SR001_.*'},
+                                'data.rse': {'$elemMatch': {'$eq': 'UC_OSG_USERDISK'}},
+                                # 'number' : {'$gt' : 11997}
                                 },
-                               projection = {'name' : 1, 'number' : 1},
+                               projection={'name': 1,
+                                           'number': 1,
+                                           'data.host': 1,
+                                           'data.type': 1},
                                skip=400,
-                               #limit = 300,
-    ):
-        send(doc['name'])
-    #send()
-    #for message in get_messages_from_queue(QUEUE_URL):
+                               limit=10,
+                               ):
+        send(doc)
+    # send()
+    # for message in get_messages_from_queue(QUEUE_URL):
     #    print('message', message['Body'])
-
 
 
 if __name__ == "__main__":
