@@ -3,8 +3,7 @@ import os
 
 import pymongo
 
-CONNECTION = pymongo.MongoClient(
-    f'mongodb://queue_inserter:{os.environ.get("MONGO_QUEUE_PASSWORD")}@rundbcluster-shard-00-00-cfaei.gcp.mongodb.net:27017,rundbcluster-shard-00-01-cfaei.gcp.mongodb.net:27017,rundbcluster-shard-00-02-cfaei.gcp.mongodb.net:27017/xenon1t?ssl=true&replicaSet=RunDBCluster-shard-0&authSource=admin&retryWrites=true')
+CONNECTION = pymongo.MongoClient(f'mongodb://queue_inserter:{os.environ.get("MONGO_QUEUE_PASSWORD")}@rundbcluster-shard-00-00-cfaei.gcp.mongodb.net:27017,rundbcluster-shard-00-01-cfaei.gcp.mongodb.net:27017,rundbcluster-shard-00-02-cfaei.gcp.mongodb.net:27017/xenon1t?ssl=true&replicaSet=RunDBCluster-shard-0&authSource=admin&retryWrites=true')
 COLLECTION = CONNECTION['xenon1t']['processing_queue']
 
 
@@ -67,10 +66,11 @@ def main():
     else:
         print('create')
         COLLECTION.create_index(index)
-
+    COLLECTION.remove({})
 
     c = pymongo.MongoClient('mongodb://pax:%s@zenigata.uchicago.edu:27017/run' % os.environ.get('MONGO_PASSWORD'))
     collection = c['run']['runs_new']
+
     for doc in collection.find({'tags.name': '_sciencerun1', 'detector': 'tpc',
                                 'data.location': {'$regex': 'x1t_SR001_.*'},
                                 'data.rse': {'$elemMatch': {'$eq': 'UC_OSG_USERDISK'}},
@@ -84,9 +84,6 @@ def main():
                                limit=10,
                                ):
         send(doc)
-    # send()
-    # for message in get_messages_from_queue(QUEUE_URL):
-    #    print('message', message['Body'])
 
 
 if __name__ == "__main__":

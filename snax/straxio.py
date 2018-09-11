@@ -12,7 +12,7 @@ import strax
 from jobqueue import get_messages_from_queue, error
 
 CONNECTION = pymongo.MongoClient(
-    f'mongodb://queue_inserter:{os.environ.get("MONGO_JOB_PASSWORD")}@rundbcluster-shard-00-00-cfaei.gcp.mongodb.net:27017,rundbcluster-shard-00-01-cfaei.gcp.mongodb.net:27017,rundbcluster-shard-00-02-cfaei.gcp.mongodb.net:27017/xenon1t?ssl=true&replicaSet=RunDBCluster-shard-0&authSource=admin&retryWrites=true')
+    f'mongodb://worker_queue:{os.environ.get("MONGO_JOB_PASSWORD")}@rundbcluster-shard-00-00-cfaei.gcp.mongodb.net:27017,rundbcluster-shard-00-01-cfaei.gcp.mongodb.net:27017,rundbcluster-shard-00-02-cfaei.gcp.mongodb.net:27017/xenon1t?ssl=true&replicaSet=RunDBCluster-shard-0&authSource=admin&retryWrites=true')
 COLLECTION = CONNECTION['xenon1t']['workers']
 
 
@@ -102,12 +102,6 @@ def convert(dataset):
         print('running make')
         st.make(dataset, dtype)
         print('made')
-    except Exception as e:
-        print('STRAXFAIL EXCEPTION', str(e))
-        # remove(client, dataset)
-        raise
-        # temporary_directory = download(dataset, temporary_directory)
-        # st.make(dataset, 'dtype')
 
     temporary_directory.cleanup()
 
@@ -131,9 +125,9 @@ def loop():
         print(f"Working on {doc['payload']['number']}")
         try:
             convert(dataset)
-        except Exception as ex:
-            error(doc, str(ex))
+        except BaseException as ex:
             end_workeer(result)
+            error(doc, str(ex))
             raise
 
     end_workeer(result)
