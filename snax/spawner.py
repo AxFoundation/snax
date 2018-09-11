@@ -37,7 +37,7 @@ def queue_state(partition, state='pending'):
     return len(ids)
 
 
-def main(spawn_threshold=10, sleep=30, partition='dali', n_running_max = 25):
+def main(spawn_threshold=10, sleep=60, partition='dali', n_running_max = 100):
     sqs = boto3.resource('sqs')
 
     queue = sqs.get_queue_by_name(QueueName='snax')
@@ -66,6 +66,7 @@ def main(spawn_threshold=10, sleep=30, partition='dali', n_running_max = 25):
 if __name__ == "__main__":
     import sys
     partition = sys.argv[1]
-    main(partition=partition,
-         n_running_max=30 if partition == 'dali' else 12)
+    main(partition=partition)
+        # n_running_max=10)
+
 

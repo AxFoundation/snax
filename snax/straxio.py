@@ -14,7 +14,7 @@ export X509_USER_PROXY=/project/lgrandi/xenon1t/grid_proxy/xenon_service_proxy
 source /cvmfs/xenon.opensciencegrid.org/software/rucio-py27/setup_rucio_1_8_3.sh
 source /cvmfs/oasis.opensciencegrid.org/osg-software/osg-wn-client/3.4/current/el7-x86_64/setup.sh
 cd {temporary_directory.name}
-rucio download x1t_SR001_{dataset}_tpc:raw --rse UC_OSG_USERDISK
+rucio download x1t_SR001_{dataset}_tpc:raw --rse UC_OSG_USERDISK --ndownloader 5
 """ # --rse UC_OSG_USERDISK
 
     file = tempfile.NamedTemporaryFile(suffix='.sh', delete=False)
@@ -58,7 +58,7 @@ def remove(s3, dataset):
     objects2 = [{'Key' : obj['Key']} for obj in objects['Contents']]
             
     print('deleting %d objects' % len(objects['Contents']))
-    s3c.delete_objects(Bucket=BUCKET_NAME,
+    s3.delete_objects(Bucket=BUCKET_NAME,
                        Delete={'Objects' : objects2})
 
 def convert(dataset):
@@ -67,27 +67,36 @@ def convert(dataset):
 
     strax.Mailbox.DEFAULT_TIMEOUT = 600
     
-
-    st = strax.Context(storage=[ strax.SimpleS3Store(),
+    st = strax.Context(storage=[ 
+        #strax.SimpleS3Store(),
+        strax.DataDirectory(path="/dali/lgrandi/tunnell/strax_data"),
+        strax.SimpleS3Store(readonly=True),
                              ],
                        register_all=strax.xenon.plugins,
                        config={'pax_raw_dir' : name + '/'})
     st.register(strax.xenon.pax_interface.RecordsFromPax)
 
-    client = st.storage[0].s3
-    client.create_bucket(Bucket=BUCKET_NAME)
+    #client = st.storage[0].s3
+    #client.create_bucket(Bucket=BUCKET_NAME)
+
+    dtype = 'records'
 
     meta = {}
     try:
-        meta = st.get_meta(dataset, 'raw_records')
+        print('gett meta')
+        meta = st.get_meta(dataset, dtype)
+        print('got meta')
     except strax.DataNotAvailable:
         temporary_directory = download(dataset, temporary_directory)
-        st.make(dataset, 'raw_records')
+        print('running make')
+        st.make(dataset, dtype)
+        print('made')
     except Exception as e:
         print('STRAXFAIL EXCEPTION', str(e))
-        remove(client, dataset)
-        temporary_directory = download(dataset, temporary_directory)
-        st.make(dataset, 'raw_records')
+        #remove(client, dataset)
+        raise
+        #temporary_directory = download(dataset, temporary_directory)
+        #st.make(dataset, 'dtype')
 
     temporary_directory.cleanup()
 
@@ -99,7 +108,7 @@ def loop():
         try:
             convert(dataset)
         except FileNotFoundError as ex:
-            print(f'SNAXFAIL {dataset} {ex}')
+            print(f'SNAXFAIL filenotfound {dataset} {ex}')
         except Exception as ex:
             print(f'NEWSNAXFAIL {dataset} {ex}')
             raise
@@ -109,4 +118,5 @@ def loop():
 
 
 if __name__ == "__main__":
+#    convert("170325_1714")
     loop() #convert("170428_0804") # #loop()

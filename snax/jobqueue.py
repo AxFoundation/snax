@@ -63,7 +63,8 @@ def main():
                                 #'number' : {'$gt' : 11997}
                                 },
                                projection = {'name' : 1, 'number' : 1},
-        #                           limit = 1000
+                               skip=400,
+                               #limit = 300,
     ):
         send(doc['name'])
     #send()
