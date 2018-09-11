@@ -1,28 +1,50 @@
+import datetime
 import getpass
 import subprocess
+import tempfile
 import time
-import datetime
 
-import boto3
+from jobqueue import COLLECTION
 
-QUEUE_URL = 'https://sqs.us-east-1.amazonaws.com/771312461418/snax'
-
-def send(dataset='170505_0309'):
-    # Create SQS client
-    sqs = boto3.resource('sqs')
-
-    queue = sqs.get_queue_by_name(QueueName='snax')
-
-    print(len(queue))
-
+CPUS = 4
+TIME = '24:00:00'
+MEM = 2000
 
 def queue_dali():
-    # TODO: write tempfile then submit
-    subprocess.getoutput('sbatch ~/blah.sh')
+    with tempfile.NamedTemporaryFile(delete=False) as f:
+        f.write(f"""#!/bin/bash                                                                                                                                                                                       
+#SBATCH --job-name=strax                                                                                                                                                                          
+#SBATCH --ntasks=1                                                                                                                                                                                
+#SBATCH --cpus-per-task={CPUS}                                                                                                                                                                         
+#SBATCH --time={TIME}                                                                                                                                                                          
+#SBATCH --partition=dali                                                                                                                                                                          
+#SBATCH --account=pi-lgrandi                                                                                                                                                                      
+#SBATCH --qos=dali                                                                                                                                                                                
+#SBATCH --output=/dali/lgrandi/tunnell/strax_logs/strax_%j_std.log                                                                                                                                
+#SBATCH --error=/dali/lgrandi/tunnell/strax_logs/strax_%j_err.log                                                                                                                                 
+#SBATCH --mem-per-cpu={MEM}                                                                                                                                                                      
+source activate strax_stable
+python /dali/lgrandi/tunnell/snax/snax/straxio.py
+""")
+        subprocess.getoutput(f'sbatch {f.name}')
 
 
 def queue_xenon1t():
-    subprocess.getoutput('sbatch ~/blah_xenon1t.sh')
+    with tempfile.NamedTemporaryFile(delete=False) as f:
+        f.write("""#!/bin/bash                                                                                                                                                                                       
+#SBATCH --job-name=strax                                                                                                                                                                          
+#SBATCH --ntasks=1                                                                                                                                                                                
+#SBATCH --cpus-per-task={CPUS}                                                                                                                                                                       
+#SBATCH --time={TIME}                                                                                                                                                                           
+#SBATCH --partition=xenon1t                                                                                                                                                                       
+#SBATCH --account=pi-lgrandi                                                                                                                                                                      
+#SBATCH --output=/dali/lgrandi/tunnell/strax_logs/strax_%j_std.log                                                                                                                                
+#SBATCH --error=/dali/lgrandi/tunnell/strax_logs/strax_%j_err.log                                                                                                                                 
+#SBATCH --mem-per-cpu={MEM}                                                                                                                                                                        
+source activate strax
+python /dali/lgrandi/tunnell/snax/snax/straxio.py
+    """)
+        subprocess.getoutput(f'sbatch {f.name}')
 
 def spawn(partition):
     if partition == 'xenon1t':
@@ -33,18 +55,14 @@ def spawn(partition):
 def queue_state(partition, state='pending'):
     username = getpass.getuser()
     ids = subprocess.getoutput(f'squeue --user {username} --state {state} --partition {partition} --format %%A')
-    ids = ids.split()[1:] # 0 is header                                                                                                                    
+    ids = ids.split()[1:]  # 0 is header
     return len(ids)
 
 
 def main(spawn_threshold=10, sleep=600, partition='dali', n_running_max = 100):
-    sqs = boto3.resource('sqs')
-
-    queue = sqs.get_queue_by_name(QueueName='snax')
-
     while 1:
 
-        n = int(queue.attributes.get('ApproximateNumberOfMessages'))
+        n = int(COLLECTION.count())
 
         n_pending = queue_state(partition=partition)
         n_running = queue_state(partition=partition, state='running')
