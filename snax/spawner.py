@@ -60,7 +60,7 @@ def queue_state(partition, state='pending'):
     return len(ids)
 
 
-def main(spawn_threshold=10, sleep=600, partition='dali', n_running_max = 100):
+def main(spawn_threshold=10, sleep=60, partition='dali', n_running_max = 15):
     while 1:
 
         n = int(COLLECTION.count())
@@ -73,7 +73,7 @@ def main(spawn_threshold=10, sleep=600, partition='dali', n_running_max = 100):
         print(f'\tRunning batch queue {n_running}')
         print(f'\tPending batch queue {n_pending}')
 
-        if n > spawn_threshold and n_pending < 2:# and n_running < n_running_max:
+        if n > spawn_threshold and n_pending < 2 and n_running < n_running_max:
             print('\tSpawn')
             spawn(partition)
         else:
