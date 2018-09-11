@@ -107,6 +107,8 @@ def convert(dataset):
 
 
 def loop():
+    COLLECTION.create_index( [("startTime", 1,),], expireAfterSeconds=24*60*60 )
+
     result = COLLECTION.insert_one({'host': socket.gethostname(),
                                     'startTime': datetime.datetime.utcnow(),
                                     'endTime': None,

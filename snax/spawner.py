@@ -11,40 +11,41 @@ TIME = '24:00:00'
 MEM = 2000
 
 def queue_dali():
-    with tempfile.NamedTemporaryFile(delete=False) as f:
-        f.write(f"""#!/bin/bash                                                                                                                                                                                       
-#SBATCH --job-name=strax                                                                                                                                                                          
-#SBATCH --ntasks=1                                                                                                                                                                                
-#SBATCH --cpus-per-task={CPUS}                                                                                                                                                                         
-#SBATCH --time={TIME}                                                                                                                                                                          
-#SBATCH --partition=dali                                                                                                                                                                          
-#SBATCH --account=pi-lgrandi                                                                                                                                                                      
-#SBATCH --qos=dali                                                                                                                                                                                
-#SBATCH --output=/dali/lgrandi/tunnell/strax_logs/strax_%j_std.log                                                                                                                                
-#SBATCH --error=/dali/lgrandi/tunnell/strax_logs/strax_%j_err.log                                                                                                                                 
-#SBATCH --mem-per-cpu={MEM}                                                                                                                                                                      
+    f = tempfile.NamedTemporaryFile(delete=False)
+    f.write(f"""#!/bin/bash
+#SBATCH --job-name=strax
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task={CPUS}
+#SBATCH --time={TIME}
+#SBATCH --partition=dali
+#SBATCH --account=pi-lgrandi
+#SBATCH --qos=dali
+#SBATCH --output=/dali/lgrandi/tunnell/strax_logs/strax_%j_std.log
+#SBATCH --error=/dali/lgrandi/tunnell/strax_logs/strax_%j_err.log
+#SBATCH --mem-per-cpu={MEM}
 source activate strax_stable
 python /dali/lgrandi/tunnell/snax/snax/straxio.py
-""")
-        subprocess.getoutput(f'sbatch {f.name}')
-
+        """.encode())
+    f.close()
+    subprocess.getoutput(f'sbatch {f.name}')
 
 def queue_xenon1t():
-    with tempfile.NamedTemporaryFile(delete=False) as f:
-        f.write("""#!/bin/bash                                                                                                                                                                                       
-#SBATCH --job-name=strax                                                                                                                                                                          
-#SBATCH --ntasks=1                                                                                                                                                                                
-#SBATCH --cpus-per-task={CPUS}                                                                                                                                                                       
-#SBATCH --time={TIME}                                                                                                                                                                           
-#SBATCH --partition=xenon1t                                                                                                                                                                       
-#SBATCH --account=pi-lgrandi                                                                                                                                                                      
-#SBATCH --output=/dali/lgrandi/tunnell/strax_logs/strax_%j_std.log                                                                                                                                
-#SBATCH --error=/dali/lgrandi/tunnell/strax_logs/strax_%j_err.log                                                                                                                                 
-#SBATCH --mem-per-cpu={MEM}                                                                                                                                                                        
+    f = tempfile.NamedTemporaryFile(delete=False)
+    f.write("""#!/bin/bash
+#SBATCH --job-name=strax
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task={CPUS}
+#SBATCH --time={TIME}
+#SBATCH --partition=xenon1t
+#SBATCH --account=pi-lgrandi
+#SBATCH --output=/dali/lgrandi/tunnell/strax_logs/strax_%j_std.log
+#SBATCH --error=/dali/lgrandi/tunnell/strax_logs/strax_%j_err.log
+#SBATCH --mem-per-cpu={MEM}
 source activate strax
 python /dali/lgrandi/tunnell/snax/snax/straxio.py
-    """)
-        subprocess.getoutput(f'sbatch {f.name}')
+    """.encode())
+    f.close()
+    subprocess.getoutput(f'sbatch {f.name}')
 
 def spawn(partition):
     if partition == 'xenon1t':
@@ -86,5 +87,3 @@ if __name__ == "__main__":
     partition = sys.argv[1]
     main(partition=partition)
         # n_running_max=10)
-
-

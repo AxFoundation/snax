@@ -80,8 +80,8 @@ def main():
                                            'number': 1,
                                            'data.host': 1,
                                            'data.type': 1},
-                               skip=400,
-                               limit=10,
+                               skip=100,
+                               #limit=20,
                                ):
         send(doc)
 
