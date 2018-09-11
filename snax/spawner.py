@@ -37,7 +37,7 @@ def queue_state(partition, state='pending'):
     return len(ids)
 
 
-def main(spawn_threshold=10, sleep=60, partition='dali', n_running_max = 100):
+def main(spawn_threshold=10, sleep=600, partition='dali', n_running_max = 100):
     sqs = boto3.resource('sqs')
 
     queue = sqs.get_queue_by_name(QueueName='snax')
