@@ -1,19 +1,18 @@
 # -*- coding: utf-8 -*-
 
-import datetime
 import os
-import socket
 import stat
 import subprocess
 import tempfile
 
-import pymongo
 import strax
-from jobqueue import get_messages_from_queue, error
 
-CONNECTION = pymongo.MongoClient(
-    f'mongodb://worker_queue:{os.environ.get("MONGO_JOB_PASSWORD")}@rundbcluster-shard-00-00-cfaei.gcp.mongodb.net:27017,rundbcluster-shard-00-01-cfaei.gcp.mongodb.net:27017,rundbcluster-shard-00-02-cfaei.gcp.mongodb.net:27017/xenon1t?ssl=true&replicaSet=RunDBCluster-shard-0&authSource=admin&retryWrites=true')
-COLLECTION = CONNECTION['xenon1t']['workers']
+from .jobqueue import get_messages_from_queue
+from .rundb import error
+from .rundb import init_worker, update_worker, end_worker
+
+
+# COLLECTION = CONNECTION['xenon1t']['workers']
 
 
 def download(dataset, temporary_directory):
@@ -107,38 +106,23 @@ def convert(dataset):
 
 
 def loop():
-    COLLECTION.create_index( [("startTime", 1,),], expireAfterSeconds=24*60*60 )
-
-    result = COLLECTION.insert_one({'host': socket.gethostname(),
-                                    'startTime': datetime.datetime.utcnow(),
-                                    'endTime': None,
-                                    'run': None,
-                                    'runStart': None,
-                                    })
+    inserted_id = init_worker()
 
     for i, doc in enumerate(get_messages_from_queue()):
-
-        COLLECTION.find_one_and_update({'_id': result.inserted_id},
-                                       {'$set': {'runStart': datetime.datetime.utcnow(),
-                                                 'run': doc['payload']['number']}})
-
-        dataset = doc['payload']['name']
+        update_worker(inserted_id, doc['payload']['number'])
 
         print(f"Working on {doc['payload']['number']}")
         try:
-            convert(dataset)
+            convert(doc['payload']['name'])
         except BaseException as ex:
-            end_workeer(result)
+            end_worker(inserted_id)
             error(doc, str(ex))
             raise
 
-    end_workeer(result)
+    end_worker(inserted_id)
 
 
-def end_workeer(result):
-    COLLECTION.find_one_and_update({'_id': result.inserted_id},
-                                   {'$set': {'endTime': datetime.datetime.utcnow(),
-                                             'run': None}})
+
 
 
 if __name__ == "__main__":

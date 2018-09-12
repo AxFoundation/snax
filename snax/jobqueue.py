@@ -1,30 +1,8 @@
-import datetime
 import os
 
 import pymongo
 
-CONNECTION = pymongo.MongoClient(f'mongodb://queue_inserter:{os.environ.get("MONGO_QUEUE_PASSWORD")}@rundbcluster-shard-00-00-cfaei.gcp.mongodb.net:27017,rundbcluster-shard-00-01-cfaei.gcp.mongodb.net:27017,rundbcluster-shard-00-02-cfaei.gcp.mongodb.net:27017/xenon1t?ssl=true&replicaSet=RunDBCluster-shard-0&authSource=admin&retryWrites=true')
-COLLECTION = CONNECTION['xenon1t']['processing_queue']
-
-
-def send(payload):
-    doc = {
-        'startTime': None,
-        'endTime': None,
-        'createdOn': datetime.datetime.utcnow(),
-        'priority': 1,
-        'error': False,
-        'payload': payload
-    }
-
-    COLLECTION.insert_one(doc)
-
-
-def error(doc, msg=""):
-    COLLECTION.find_one_and_update(filter={'_id': doc['_id']},
-                                   update={'$set': {'error': True,
-                                                    'error_msg': msg}},
-                                   )
+from .rundb import send, fetch, finish, setup
 
 
 def get_messages_from_queue():
@@ -38,21 +16,15 @@ def get_messages_from_queue():
     """
 
     while True:
-        doc = COLLECTION.find_one_and_update(filter={'startTime': None},
-                                             update={'$set': {'startTime': datetime.datetime.utcnow()}},
-                                             sort=[('priority', -1),
-                                                   ('createdOn', 1)],
-                                             return_document=pymongo.collection.ReturnDocument.AFTER,
-                                             )
+        doc = fetch()
 
         if doc is None:
             break
         else:
             yield doc
 
-        doc = COLLECTION.find_one_and_update(filter={'_id': doc['_id']},
-                                             update={'$set': {'endTime': datetime.datetime.utcnow()}},
-                                             )
+        doc = finish(doc)
+
         if doc is None:
             raise RuntimeError("Could not find job in queue", doc)
 
@@ -60,13 +32,7 @@ def get_messages_from_queue():
 def main():
     index = [('startTime', 1), ('priority', -1), ('createdOn', 1)]
 
-    for index2 in COLLECTION.list_indexes():
-        if index2['key'].items() == index:
-            break
-    else:
-        print('create')
-        COLLECTION.create_index(index)
-    COLLECTION.remove({})
+    setup(index)
 
     c = pymongo.MongoClient('mongodb://pax:%s@zenigata.uchicago.edu:27017/run' % os.environ.get('MONGO_PASSWORD'))
     collection = c['run']['runs_new']
