@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 
+import multiprocessing
 import os
 import stat
 import subprocess
 import tempfile
-from threading import Timer
+import time
 
 import strax
 
@@ -13,11 +14,14 @@ from .rundb import error, send_heartbeat
 from .rundb import init_worker, update_worker, end_worker
 
 
-class RepeatingTimer(Timer):
-    def run(self):
-        while not self.finished.is_set():
-            self.function(*self.args, **self.kwargs)
-            self.finished.wait(self.interval)
+def mongodb_keep_alive():
+    while 1:
+        print('Heartbeat')
+        send_heartbeat()
+        time.sleep(60)
+
+
+
 
 def download(dataset, temporary_directory):
     script = f"""#!/bin/bash
@@ -96,23 +100,24 @@ def convert(dataset):
     dtype = 'records'
 
     # Send mongo heartbeat for worker
-    t = RepeatingTimer(60, send_heartbeat())
-    t.start()
+    p = multiprocessing.Process(target=mongodb_keep_alive)
+    assert p.is_alive() is False
+    p.start()
+    assert p.is_alive() is True
 
-    meta = {}
     try:
-        print('gett meta')
-        meta = st.get_meta(dataset, dtype)
-        print('got meta')
+        st.get_meta(dataset, dtype)
     except strax.DataNotAvailable:
         temporary_directory = download(dataset, temporary_directory)
-        print('running make')
         st.make(dataset, dtype)
-        print('made')
 
     temporary_directory.cleanup()
 
-    t.stop()  # Stop heartbeat
+    # Stop heartbeat
+    assert p.is_alive() is True
+    p.terminate()
+    p.join()
+    assert p.is_alive() is False
 
 def loop():
     inserted_id = init_worker()
