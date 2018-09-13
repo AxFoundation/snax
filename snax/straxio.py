@@ -14,10 +14,10 @@ from .rundb import error, send_heartbeat
 from .rundb import init_worker, update_worker, end_worker
 
 
-def mongodb_keep_alive():
+def mongodb_keep_alive(inserted_id):
     while 1:
         print('Heartbeat')
-        send_heartbeat()
+        send_heartbeat(inserted_id)
         time.sleep(60)
 
 
@@ -79,7 +79,7 @@ def remove(s3, dataset):
                       Delete={'Objects': objects2})
 
 
-def convert(dataset):
+def convert(dataset, dtype='records'):
     temporary_directory = tempfile.TemporaryDirectory(prefix='/dali/lgrandi/tunnell/temp/')
     name = temporary_directory.name
 
@@ -97,14 +97,6 @@ def convert(dataset):
     # client = st.storage[0].s3
     # client.create_bucket(Bucket=BUCKET_NAME)
 
-    dtype = 'records'
-
-    # Send mongo heartbeat for worker
-    p = multiprocessing.Process(target=mongodb_keep_alive)
-    assert p.is_alive() is False
-    p.start()
-    assert p.is_alive() is True
-
     try:
         st.get_meta(dataset, dtype)
     except strax.DataNotAvailable:
@@ -113,14 +105,15 @@ def convert(dataset):
 
     temporary_directory.cleanup()
 
-    # Stop heartbeat
-    assert p.is_alive() is True
-    p.terminate()
-    p.join()
-    assert p.is_alive() is False
-
 def loop():
     inserted_id = init_worker()
+
+    # Send mongo heartbeat for worker                                                                                                                            
+    p = multiprocessing.Process(target=mongodb_keep_alive,
+                                args=(inserted_id,))
+    assert p.is_alive() is False
+    p.start()
+    assert p.is_alive() is True     
 
     for i, doc in enumerate(get_messages_from_queue()):
         update_worker(inserted_id, doc['payload']['number'])
@@ -133,7 +126,15 @@ def loop():
             error(doc, str(ex))
             raise
 
+            
+    # Stop heartbeat                                                                                                                                             
+    assert p.is_alive() is True
+    p.terminate()
+    p.join()
+    assert p.is_alive() is False
+
     end_worker(inserted_id)
+
 
 
 
