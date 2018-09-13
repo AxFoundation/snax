@@ -9,6 +9,7 @@ from .rundb import processing_count
 CPUS = 4
 TIME = '24:00:00'
 MEM = 2000
+ENV = 'strax_dev'
 
 def queue_dali():
     f = tempfile.NamedTemporaryFile(delete=False)
@@ -23,8 +24,8 @@ def queue_dali():
 #SBATCH --output=/dali/lgrandi/tunnell/strax_logs/strax_%j_std.log
 #SBATCH --error=/dali/lgrandi/tunnell/strax_logs/strax_%j_err.log
 #SBATCH --mem-per-cpu={MEM}
-source activate strax_stable
-python /dali/lgrandi/tunnell/snax/snax/straxio.py
+source activate {ENV}
+python -m snax.straxio
         """.encode())
     f.close()
     subprocess.getoutput(f'sbatch {f.name}')
@@ -41,8 +42,8 @@ def queue_xenon1t():
 #SBATCH --output=/dali/lgrandi/tunnell/strax_logs/strax_%j_std.log
 #SBATCH --error=/dali/lgrandi/tunnell/strax_logs/strax_%j_err.log
 #SBATCH --mem-per-cpu={MEM}
-source activate strax
-python /dali/lgrandi/tunnell/snax/snax/straxio.py
+source activate {ENV}
+python -m snax.straxio
     """.encode())
     f.close()
     subprocess.getoutput(f'sbatch {f.name}')
@@ -61,7 +62,7 @@ def queue_state(partition, state='pending'):
 
 
 
-def main(spawn_threshold=10, sleep=60, partition='dali', n_running_max = 15):
+def main(spawn_threshold=10, sleep=60, partition='dali', n_running_max = 100):
     while 1:
         n = processing_count()
 

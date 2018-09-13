@@ -35,7 +35,7 @@ def init_worker(client):
                                     'runStart': None,
                                     'heartBeat': datetime.datetime.utcnow(),
                                     })
-    return result
+    return result.inserted_id
 
 
 @mongo_client
