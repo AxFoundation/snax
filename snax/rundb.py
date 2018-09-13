@@ -83,7 +83,8 @@ def error(client, doc, msg=""):
     collection = client['xenon1t']['processing_queue']
     collection.find_one_and_update(filter={'_id': doc['_id']},
                                    update={'$set': {'error': True,
-                                                    'error_msg': msg}},
+                                                    'error_msg': msg,
+                                                    }},
                                    )
 
 
@@ -105,7 +106,6 @@ def setup(client, index):
         print('create')
         collection.create_index(index)
     collection.remove({})
-
 
 @mongo_client
 def fetch(client):
