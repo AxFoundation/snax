@@ -4,16 +4,20 @@ import os
 import stat
 import subprocess
 import tempfile
+from threading import Timer
 
 import strax
 
 from .jobqueue import get_messages_from_queue
-from .rundb import error
+from .rundb import error, send_heartbeat
 from .rundb import init_worker, update_worker, end_worker
 
 
-# COLLECTION = CONNECTION['xenon1t']['workers']
-
+class RepeatingTimer(Timer):
+    def run(self):
+        while not self.finished.is_set():
+            self.function(*self.args, **self.kwargs)
+            self.finished.wait(self.interval)
 
 def download(dataset, temporary_directory):
     script = f"""#!/bin/bash
@@ -91,6 +95,10 @@ def convert(dataset):
 
     dtype = 'records'
 
+    # Send mongo heartbeat for worker
+    t = RepeatingTimer(60, send_heartbeat())
+    t.start()
+
     meta = {}
     try:
         print('gett meta')
@@ -104,6 +112,7 @@ def convert(dataset):
 
     temporary_directory.cleanup()
 
+    t.stop()  # Stop heartbeat
 
 def loop():
     inserted_id = init_worker()

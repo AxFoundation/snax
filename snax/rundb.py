@@ -19,30 +19,38 @@ def mongo_client(func, *args, **kwargs):
 
 
 @mongo_client
-def processinig_count(client):
+def processing_count(client):
     return client['xenon1t']['processing_queue'].count()
 
 
 @mongo_client
 def init_worker(client):
     collection = client['xenon1t']['workers']
-    collection.create_index([("startTime", 1,), ], expireAfterSeconds=24 * 60 * 60)
+    collection.create_index([("heartBeat", 1,), ], expireAfterSeconds=10 * 60)
 
     result = collection.insert_one({'host': socket.gethostname(),
                                     'startTime': datetime.datetime.utcnow(),
                                     'endTime': None,
                                     'run': None,
                                     'runStart': None,
+                                    'heartBeat': datetime.datetime.utcnow(),
                                     })
     return result.inserted_id
 
+
+@mongo_client
+def send_heartbeat(client, inserted_id):
+    collection = client['xenon1t']['workers']
+    collection.find_one_and_update({'_id': inserted_id},
+                                   {'$set': {'heartBeat': datetime.datetime.utcnow()}})
 
 @mongo_client
 def update_worker(client, inserted_id, number):
     collection = client['xenon1t']['workers']
     collection.find_one_and_update({'_id': inserted_id},
                                    {'$set': {'runStart': datetime.datetime.utcnow(),
-                                             'run': number}})
+                                             'run': number,
+                                             'heartBeat': datetime.datetime.utcnow(), }})
 
 
 @mongo_client
@@ -51,7 +59,8 @@ def end_worker(client, inserted_id):
     collection.find_one_and_update({'_id': inserted_id},
                                    {'$set': {'endTime': datetime.datetime.utcnow(),
                                              'run': None,
-                                             'runStart': None}})
+                                             'runStart': None,
+                                             'heartBeat': datetime.datetime.utcnow(), }})
 
 
 @mongo_client
