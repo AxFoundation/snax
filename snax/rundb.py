@@ -47,20 +47,28 @@ def send_heartbeat(client, inserted_id):
 @mongo_client
 def update_worker(client, inserted_id, number):
     collection = client['xenon1t']['workers']
+
+    # Otherwise, get different values if call twice.
+    now = datetime.datetime.utcnow()
+
     collection.find_one_and_update({'_id': inserted_id},
-                                   {'$set': {'runStart': datetime.datetime.utcnow(),
+                                   {'$set': {'runStart': now,
                                              'run': number,
-                                             'heartBeat': datetime.datetime.utcnow(), }})
+                                             'heartBeat': now, }})
 
 
 @mongo_client
 def end_worker(client, inserted_id):
     collection = client['xenon1t']['workers']
+
+    # Otherwise, get different values if call twice.
+    now = datetime.datetime.utcnow()
+
     collection.find_one_and_update({'_id': inserted_id},
-                                   {'$set': {'endTime': datetime.datetime.utcnow(),
+                                   {'$set': {'endTime': now,
                                              'run': None,
                                              'runStart': None,
-                                             'heartBeat': datetime.datetime.utcnow(), }})
+                                             'heartBeat': now, }})
 
 
 @mongo_client
