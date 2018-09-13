@@ -34,7 +34,7 @@ def init_worker(client):
                                     'run': None,
                                     'runStart': None,
                                     })
-    return result
+    return result.inserted_id
 
 
 @mongo_client
