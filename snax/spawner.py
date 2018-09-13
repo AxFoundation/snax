@@ -4,7 +4,7 @@ import subprocess
 import tempfile
 import time
 
-from .rundb import processinig_count
+from .rundb import processing_count
 
 CPUS = 4
 TIME = '24:00:00'
@@ -63,7 +63,7 @@ def queue_state(partition, state='pending'):
 
 def main(spawn_threshold=10, sleep=60, partition='dali', n_running_max = 15):
     while 1:
-        n = processinig_count()
+        n = processing_count()
 
         n_pending = queue_state(partition=partition)
         n_running = queue_state(partition=partition, state='running')

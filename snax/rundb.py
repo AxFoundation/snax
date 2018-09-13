@@ -19,7 +19,7 @@ def mongo_client(func, *args, **kwargs):
 
 
 @mongo_client
-def processinig_count(client):
+def processing_count(client):
     return client['xenon1t']['processing_queue'].count()
 
 
@@ -33,9 +33,16 @@ def init_worker(client):
                                     'endTime': None,
                                     'run': None,
                                     'runStart': None,
+                                    'heartBeat': None,
                                     })
     return result
 
+
+@mongo_client
+def send_heartbeat(client, inserted_id):
+    collection = client['xenon1t']['workers']
+    collection.find_one_and_update({'_id': inserted_id},
+                                   {'$set': {'heartBeat': datetime.datetime.utcnow()}})
 
 @mongo_client
 def update_worker(client, inserted_id, number):
