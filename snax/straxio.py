@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import datetime
 import multiprocessing
 import os
 import stat
@@ -12,6 +13,7 @@ import strax
 from .jobqueue import get_messages_from_queue
 from .rundb import error, send_heartbeat
 from .rundb import init_worker, update_worker, end_worker
+from .spawner import HOURS
 
 
 def mongodb_keep_alive(inserted_id):
@@ -106,14 +108,17 @@ def convert(dataset, dtype='records'):
     temporary_directory.cleanup()
 
 def loop():
+    start_time = datetime.datetime.utcnow()
+    time_limit = datetime.timedelta(hours=(HOURS / 2))
+
     inserted_id = init_worker()
 
-    # Send mongo heartbeat for worker                                                                                                                            
+    # Send mongo heartbeat for worker
     p = multiprocessing.Process(target=mongodb_keep_alive,
                                 args=(inserted_id,))
     assert p.is_alive() is False
     p.start()
-    assert p.is_alive() is True     
+    assert p.is_alive() is True
 
     for i, doc in enumerate(get_messages_from_queue()):
         update_worker(inserted_id, doc['payload']['number'])
@@ -123,22 +128,22 @@ def loop():
             convert(doc['payload']['name'])
         except BaseException as ex:
             end_worker(inserted_id)
+            p.terminate()
+            p.join()
             error(doc, str(ex))
             raise
 
-            
-    # Stop heartbeat                                                                                                                                             
+        if datetime.datetime.utcnow() > start_time + time_limit:
+            print("Time limit reached")
+            break
+
+    # Stop heartbeat
     assert p.is_alive() is True
     p.terminate()
     p.join()
     assert p.is_alive() is False
 
     end_worker(inserted_id)
-
-
-
-
-
 
 if __name__ == "__main__":
     #    convert("170325_1714")

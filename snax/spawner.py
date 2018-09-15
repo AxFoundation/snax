@@ -7,7 +7,8 @@ import time
 from .rundb import processing_count
 
 CPUS = 4
-TIME = '24:00:00'
+HOURS = 24
+TIME = '%d:00:00' % HOURS
 MEM = 2000
 ENV = 'strax_dev'
 
@@ -32,7 +33,7 @@ python -m snax.straxio
 
 def queue_xenon1t():
     f = tempfile.NamedTemporaryFile(delete=False)
-    f.write("""#!/bin/bash
+    f.write(f"""#!/bin/bash
 #SBATCH --job-name=strax
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task={CPUS}
