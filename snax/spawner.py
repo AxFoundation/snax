@@ -32,7 +32,7 @@ python -m snax.straxio
 
 def queue_xenon1t():
     f = tempfile.NamedTemporaryFile(delete=False)
-    f.write("""#!/bin/bash
+    f.write(f"""#!/bin/bash
 #SBATCH --job-name=strax
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task={CPUS}
@@ -62,7 +62,7 @@ def queue_state(partition, state='pending'):
 
 
 
-def main(spawn_threshold=10, sleep=60, partition='dali', n_running_max = 100):
+def main(spawn_threshold=10, sleep=60, partition='dali', n_running_max = 5000):
     while 1:
         n = processing_count()
 

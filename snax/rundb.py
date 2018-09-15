@@ -41,8 +41,10 @@ def init_worker(client):
 @mongo_client
 def send_heartbeat(client, inserted_id):
     collection = client['xenon1t']['workers']
-    collection.find_one_and_update({'_id': inserted_id},
-                                   {'$set': {'heartBeat': datetime.datetime.utcnow()}})
+    print(inserted_id)
+    result = collection.find_one_and_update({'_id': inserted_id},
+                                            {'$set': {'heartBeat': datetime.datetime.utcnow()}})
+    print(result)
 
 @mongo_client
 def update_worker(client, inserted_id, number):
