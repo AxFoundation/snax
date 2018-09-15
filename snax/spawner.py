@@ -63,7 +63,7 @@ def queue_state(partition, state='pending'):
 
 
 
-def main(spawn_threshold=10, sleep=60, partition='dali', n_running_max = 100):
+def main(spawn_threshold=10, sleep=60, partition='dali', n_running_max = 5000):
     while 1:
         n = processing_count()
 
