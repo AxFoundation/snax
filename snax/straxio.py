@@ -125,7 +125,7 @@ def loop():
 
         print(f"Working on {doc['payload']['number']}")
         try:
-            convert(doc['payload']['name'])
+            convert(doc['payload']['name'], doc['dtype'])
         except BaseException as ex:
             end_worker(inserted_id)
             p.terminate()
