@@ -11,7 +11,7 @@ import time
 import strax
 
 from .jobqueue import get_messages_from_queue
-from .rundb import error, send_heartbeat
+from .rundb import error, send_heartbeat, runs_data_initialize
 from .rundb import init_worker, update_worker, end_worker
 from .spawner import HOURS
 
@@ -81,15 +81,17 @@ def remove(s3, dataset):
                       Delete={'Objects': objects2})
 
 
-def convert(dataset, dtype='records'):
+def convert(host, dataset, dtype='records'):
     temporary_directory = tempfile.TemporaryDirectory(prefix='/dali/lgrandi/tunnell/temp/')
     name = temporary_directory.name
 
     strax.Mailbox.DEFAULT_TIMEOUT = 600
 
+    data_directory = "/dali/lgrandi/tunnell/strax_data"
+
     st = strax.Context(storage=[
         # strax.SimpleS3Store(),
-        strax.DataDirectory(path="/dali/lgrandi/tunnell/strax_data"),
+        strax.DataDirectory(path=data_directory),
         strax.SimpleS3Store(readonly=True),
     ],
         register_all=strax.xenon.plugins,
@@ -103,11 +105,31 @@ def convert(dataset, dtype='records'):
         st.get_meta(dataset, dtype)
     except strax.DataNotAvailable:
         temporary_directory = download(dataset, temporary_directory)
+
+        file_location = os.path.join(st.storage[0].path,
+                                     str(st._key_for(dataset, dtype)))
+        meta = st.get_meta(dataset, dtype)
+
+        data_doc = {"host": host,
+                    "status": "transferred",
+                    "type": meta['data_type'],
+                    "checksum": None,
+                    "creation_time": datetime.datetime.utcnow(),
+                    'lineage_hash': strax.deterministic_hash(meta['lineage']),
+                    'meta': meta
+                    }
+
+        if 'dali' in host:
+            data_doc['location'] = file_location
+            data_doc['protocol'] = 'FileSytemBackend'
+
         st.make(dataset, dtype)
+        runs_data_initialize(dataset, data_doc)
 
     temporary_directory.cleanup()
 
-def loop():
+
+def loop(host):
     start_time = datetime.datetime.utcnow()
     time_limit = datetime.timedelta(hours=(HOURS / 2))
 
@@ -125,7 +147,7 @@ def loop():
 
         print(f"Working on {doc['payload']['number']}")
         try:
-            convert(doc['payload']['name'], doc['dtype'])
+            convert(host, doc['payload']['name'], doc['dtype'])
         except BaseException as ex:
             end_worker(inserted_id)
             p.terminate()
@@ -146,5 +168,7 @@ def loop():
     end_worker(inserted_id)
 
 if __name__ == "__main__":
-    #    convert("170325_1714")
-    loop()  # convert("170428_0804") # #loop()
+    import sys
+
+    host = sys.argv[1]  # e.g. dali
+    loop(host)
