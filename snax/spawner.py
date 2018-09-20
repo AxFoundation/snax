@@ -1,6 +1,7 @@
 import datetime
 import getpass
 import subprocess
+import sys
 import tempfile
 import time
 
@@ -11,6 +12,7 @@ HOURS = 24
 TIME = '%d:00:00' % HOURS
 MEM = 2000
 ENV = 'strax_dev'
+
 
 def queue_dali():
     f = tempfile.NamedTemporaryFile(delete=False)
@@ -31,6 +33,7 @@ python -m snax.straxio dali
     f.close()
     subprocess.getoutput(f'sbatch {f.name}')
 
+
 def queue_xenon1t():
     f = tempfile.NamedTemporaryFile(delete=False)
     f.write(f"""#!/bin/bash
@@ -49,11 +52,13 @@ python -m snax.straxio dali
     f.close()
     subprocess.getoutput(f'sbatch {f.name}')
 
+
 def spawn(partition):
     if partition == 'xenon1t':
         queue_xenon1t()
     else:
         queue_dali()
+
 
 def queue_state(partition, state='pending'):
     username = getpass.getuser()
@@ -62,8 +67,7 @@ def queue_state(partition, state='pending'):
     return len(ids)
 
 
-
-def main(spawn_threshold=10, sleep=60, partition='dali', n_running_max = 5000):
+def main(spawn_threshold=10, sleep=60, partition='dali', n_running_max=5000):
     while 1:
         n = processing_count()
 
@@ -84,8 +88,9 @@ def main(spawn_threshold=10, sleep=60, partition='dali', n_running_max = 5000):
         print('\tSleeping')
         time.sleep(sleep)
 
+
 if __name__ == "__main__":
-    import sys
-    partition = sys.argv[1]
+    partition = 'dali'
+    if len(sys.argv) > 1:
+        partition = sys.argv[1]
     main(partition=partition)
-        # n_running_max=10)
