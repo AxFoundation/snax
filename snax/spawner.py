@@ -26,7 +26,7 @@ def queue_dali():
 #SBATCH --error=/dali/lgrandi/tunnell/strax_logs/strax_%j_err.log
 #SBATCH --mem-per-cpu={MEM}
 source activate {ENV}
-python -m snax.straxio
+python -m snax.straxio dali
         """.encode())
     f.close()
     subprocess.getoutput(f'sbatch {f.name}')
@@ -44,7 +44,7 @@ def queue_xenon1t():
 #SBATCH --error=/dali/lgrandi/tunnell/strax_logs/strax_%j_err.log
 #SBATCH --mem-per-cpu={MEM}
 source activate {ENV}
-python -m snax.straxio
+python -m snax.straxio dali
     """.encode())
     f.close()
     subprocess.getoutput(f'sbatch {f.name}')

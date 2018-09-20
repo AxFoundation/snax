@@ -126,3 +126,13 @@ def fetch(client):
                                                 ('createdOn', 1)],
                                           return_document=pymongo.collection.ReturnDocument.AFTER,
                                           )
+
+
+@mongo_client
+def runs_data_initialize(client, data_doc, dataset):
+    collection = client['xenon1t']['runs']
+
+    return collection.find_one_and_update(filter={'name': dataset},
+                                          update={'$push': {'data': data_doc}},
+                                          return_document=pymongo.collection.ReturnDocument.AFTER,
+                                          )

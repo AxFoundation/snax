@@ -49,6 +49,7 @@ def main():
                                skip=100,
                                #limit=20,
                                ):
+        doc['dtype'] = 'records'
         send(doc)
 
 
