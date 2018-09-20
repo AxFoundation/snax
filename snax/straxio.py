@@ -143,6 +143,10 @@ def loop(host):
     assert p.is_alive() is True
 
     for i, doc in enumerate(get_messages_from_queue()):
+        # TODO Hack, remove me 2018
+        if 'dtype' not in doc:
+            doc['dtype'] = 'records'
+
         update_worker(inserted_id, doc['payload']['number'])
 
         print(f"Working on {doc['payload']['number']}")
