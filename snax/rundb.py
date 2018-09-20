@@ -1,6 +1,5 @@
 import datetime
 import os
-import socket
 
 import pymongo
 
@@ -24,11 +23,11 @@ def processing_count(client):
 
 
 @mongo_client
-def init_worker(client):
+def init_worker(client, host):
     collection = client['xenon1t']['workers']
     collection.create_index([("heartBeat", 1,), ], expireAfterSeconds=10 * 60)
 
-    result = collection.insert_one({'host': socket.gethostname(),
+    result = collection.insert_one({'host': host,
                                     'startTime': datetime.datetime.utcnow(),
                                     'endTime': None,
                                     'run': None,
