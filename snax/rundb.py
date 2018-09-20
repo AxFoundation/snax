@@ -46,6 +46,7 @@ def send_heartbeat(client, inserted_id):
                                             {'$set': {'heartBeat': datetime.datetime.utcnow()}})
     print(result)
 
+
 @mongo_client
 def update_worker(client, inserted_id, number):
     collection = client['xenon1t']['workers']
@@ -116,6 +117,7 @@ def setup(client, index):
         print('create')
         collection.create_index(index)
     collection.remove({})
+
 
 @mongo_client
 def fetch(client):
