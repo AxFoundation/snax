@@ -27,8 +27,8 @@ def mongodb_keep_alive(inserted_id):
 
 def download(dataset, temporary_directory):
     script = f"""#!/bin/bash
-export RUCIO_ACCOUNT=xenon-analysis
-export X509_USER_PROXY=/project/lgrandi/xenon1t/grid_proxy/xenon_service_proxy
+export RUCIO_ACCOUNT=ershockley
+export X509_USER_PROXY=/project/lgrandi/shockley/user_cert
 source /cvmfs/xenon.opensciencegrid.org/software/rucio-py27/setup_rucio_1_8_3.sh
 source /cvmfs/oasis.opensciencegrid.org/osg-software/osg-wn-client/3.4/current/el7-x86_64/setup.sh
 cd {temporary_directory.name}
