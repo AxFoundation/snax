@@ -23,16 +23,19 @@ def mongodb_keep_alive(inserted_id):
         time.sleep(60)
 
 
+def download(dataset, temporary_directory, rucio_location = None):
+    if rucio_location is None:
+        print('Rucio location unset')
+        rucio_location = f'x1t_SR001_{dataset}_tpc:raw'
+    print('Rucio location', rucio_location)
 
-
-def download(dataset, temporary_directory):
     script = f"""#!/bin/bash
 export RUCIO_ACCOUNT=ershockley
 export X509_USER_PROXY=/project/lgrandi/shockley/user_cert
 source /cvmfs/xenon.opensciencegrid.org/software/rucio-py27/setup_rucio_1_8_3.sh
 source /cvmfs/oasis.opensciencegrid.org/osg-software/osg-wn-client/3.4/current/el7-x86_64/setup.sh
 cd {temporary_directory.name}
-rucio download x1t_SR001_{dataset}_tpc:raw --rse UC_OSG_USERDISK --ndownloader 2
+rucio download {rucio_location} --rse UC_OSG_USERDISK --ndownloader 5
 """  # --rse UC_OSG_USERDISK
 
     file = tempfile.NamedTemporaryFile(suffix='.sh', delete=False)
@@ -81,7 +84,7 @@ def remove(s3, dataset):
                       Delete={'Objects': objects2})
 
 
-def convert(host, dataset, dtype='records'):
+def convert(host, dataset, dtype='records', rucio_location=None):
     temporary_directory = tempfile.TemporaryDirectory(prefix='/dali/lgrandi/tunnell/temp/')
     name = temporary_directory.name
 
@@ -104,10 +107,12 @@ def convert(host, dataset, dtype='records'):
     try:
         st.get_meta(dataset, dtype)
     except strax.DataNotAvailable:
-        temporary_directory = download(dataset, temporary_directory)
+        temporary_directory = download(dataset, temporary_directory, rucio_location)
 
         file_location = os.path.join(st.storage[0].path,
                                      str(st._key_for(dataset, dtype)))
+        print('SNAX make')
+        st.make(dataset, dtype)
         meta = st.get_meta(dataset, dtype)
 
         data_doc = {"host": host,
@@ -123,7 +128,7 @@ def convert(host, dataset, dtype='records'):
             data_doc['location'] = file_location
             data_doc['protocol'] = 'FileSytemBackend'
 
-        st.make(dataset, dtype)
+        print('SNAX rundb write datum')
         runs_data_initialize(dataset, data_doc)
 
     temporary_directory.cleanup()
@@ -149,9 +154,11 @@ def loop(host):
 
         update_worker(inserted_id, doc['payload']['number'])
 
+        print(doc)
         print(f"Working on {doc['payload']['number']}")
         try:
-            convert(host, doc['payload']['name'], doc['dtype'])
+            convert(host, doc['payload']['name'], doc['dtype'],
+                    rucio_location = doc['payload']['data'][0]['location'])
         except BaseException as ex:
             end_worker(inserted_id)
             p.terminate()

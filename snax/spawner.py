@@ -7,7 +7,7 @@ import time
 
 from .rundb import processing_count
 
-CPUS = 4
+CPUS = 10
 HOURS = 24
 TIME = '%d:00:00' % HOURS
 MEM = 2000
@@ -67,7 +67,7 @@ def queue_state(partition, state='pending'):
     return len(ids)
 
 
-def main(spawn_threshold=10, sleep=60, partition='dali', n_running_max=5000):
+def main(spawn_threshold=10, sleep=20, partition='dali', n_running_max=5000):
     while 1:
         n = processing_count()
 
@@ -75,7 +75,7 @@ def main(spawn_threshold=10, sleep=60, partition='dali', n_running_max=5000):
         n_running = queue_state(partition=partition, state='running')
 
         print('Running ', str(datetime.datetime.utcnow()))
-        print(f'\tSQS Queue Size {n}')
+        print(f'\tQueue Size {n}')
         print(f'\tRunning batch queue {n_running}')
         print(f'\tPending batch queue {n_pending}')
 

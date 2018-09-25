@@ -44,10 +44,11 @@ def main():
                                 },
                                projection={'name': 1,
                                            'number': 1,
-                                           'data.host': 1,
-                                           'data.type': 1},
-                               skip=100,
-                               #limit=20,
+                                           'data' : {'$elemMatch': {'rse': 'UC_OSG_USERDISK'}},
+                                           #'data.host': 1,
+                                           #'data.type': 1,
+                                           #'data.location' : 1
+},
                                ):
         doc['dtype'] = 'records'
         send(doc)
