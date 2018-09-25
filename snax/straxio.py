@@ -138,7 +138,7 @@ def loop(host):
     start_time = datetime.datetime.utcnow()
     time_limit = datetime.timedelta(hours=(HOURS / 2))
 
-    inserted_id = init_worker()
+    inserted_id = init_worker(host)
 
     # Send mongo heartbeat for worker
     p = multiprocessing.Process(target=mongodb_keep_alive,
