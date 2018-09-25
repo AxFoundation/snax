@@ -129,7 +129,7 @@ def convert(host, dataset, dtype='records', rucio_location=None):
             data_doc['protocol'] = 'FileSytemBackend'
 
         print('SNAX rundb write datum')
-        runs_data_initialize(dataset, data_doc)
+        runs_data_initialize(data_doc=data_doc, dataset=dataset)
 
     temporary_directory.cleanup()
 
